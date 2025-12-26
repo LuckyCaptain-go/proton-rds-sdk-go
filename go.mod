@@ -1,4 +1,4 @@
-module github.com/AISHU-Technology/proton-rds-sdk-go
+module github.com/LuckyCaptain-go/proton-rds-sdk-go
 
 go 1.24.0
 
