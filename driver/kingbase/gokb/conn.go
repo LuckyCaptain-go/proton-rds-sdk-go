@@ -43,7 +43,7 @@ import (
 	"time"
 	"unicode"
 	"unsafe"
-
+	"runtime"
 	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid"
 	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid/mysqlOid"
 	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid/oracleOid"
@@ -53,6 +53,8 @@ import (
 
 	"github.com/golang-sql/civil"
 	"github.com/shopspring/decimal"
+	"golang.org/x/sys/unix"
+	"golang.org/x/sys/windows"
 )
 
 // Open打开一个到数据库的新连接，name为连接串
@@ -496,23 +498,42 @@ func (cn *conn) writeBuf(b byte) (wb *writeBuf) {
 func CreateDialer(timeout timeoutParams) net.Dialer {
 	dialer := net.Dialer{
 		Timeout:   time.Duration(timeout.connect_timeout) * time.Second,
-		KeepAlive: time.Duration(timeout.keepalive_interval) * time.Second, //此处参数同时作用于keepalive_idle和keepalive_interval
+		KeepAlive: time.Duration(timeout.keepalive_interval) * time.Second,
 		Control: func(network, address string, c syscall.RawConn) error {
 			var controlErr error
 			err := c.Control(func(fd uintptr) {
-				//通过系统调用依次设置keepalive_count、tcp_user_timeout
-				//keepalive_idle和keepalive_interval必须在上述KeepAlive设置，否则会被KeepAlive的默认值15s覆盖
-				controlErr = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, syscall.TCP_KEEPCNT, timeout.keepalive_count)
-				if controlErr != nil {
-					return
-				}
-				controlErr = syscall.SetsockoptInt(int(fd), syscall.IPPROTO_TCP, 0x12, timeout.tcp_user_timeout)
-				if controlErr != nil {
-					return
+				if runtime.GOOS == "windows" {
+					// Windows平台
+					handle := windows.Handle(fd)
+					// 使用windows包设置选项
+					// 注意：Windows可能不支持所有Linux的TCP选项
+				} else {
+					// Unix/Linux平台
+					// 使用unix包，它提供了跨平台的常量
+					controlErr = unix.SetsockoptInt(
+						int(fd),
+						unix.IPPROTO_TCP,
+						unix.TCP_KEEPCNT,
+						timeout.keepalive_count,
+					)
+					if controlErr != nil {
+						return
+					}
+					
+					// TCP_USER_TIMEOUT
+					controlErr = unix.SetsockoptInt(
+						int(fd),
+						unix.IPPROTO_TCP,
+						unix.TCP_USER_TIMEOUT,
+						timeout.tcp_user_timeout,
+					)
+					if controlErr != nil {
+						return
+					}
 				}
 			})
 			if err != nil {
-				return fmt.Errorf("raw control error: %w", err)
+				return err
 			}
 			return controlErr
 		},
