@@ -502,45 +502,57 @@ func CreateDialer(timeout timeoutParams) net.Dialer {
 		Control: func(network, address string, c syscall.RawConn) error {
 			var controlErr error
 			err := c.Control(func(fd uintptr) {
+				// 根据操作系统使用不同的调用方式
 				if runtime.GOOS == "windows" {
-					// Windows平台
-					handle := windows.Handle(fd)
-					// 使用windows包设置选项
-					// 注意：Windows可能不支持所有Linux的TCP选项
-				} else {
-					// Unix/Linux平台
-					// 使用unix包，它提供了跨平台的常量
-					controlErr = unix.SetsockoptInt(
-						int(fd),
-						unix.IPPROTO_TCP,
-						unix.TCP_KEEPCNT,
-						timeout.keepalive_count,
-					)
-					if controlErr != nil {
-						return
-					}
+					// Windows平台：必须使用syscall.Handle类型
+					handle := syscall.Handle(fd)
 					
-					// TCP_USER_TIMEOUT
-					controlErr = unix.SetsockoptInt(
-						int(fd),
-						unix.IPPROTO_TCP,
-						unix.TCP_USER_TIMEOUT,
-						timeout.tcp_user_timeout,
+					// Windows可能不支持这些TCP选项，我们只设置基本的keepalive
+					// 设置SO_KEEPALIVE（Windows支持这个）
+					controlErr = syscall.SetsockoptInt(
+						int(handle), // Windows需要int(handle)
+						syscall.SOL_SOCKET,
+						syscall.SO_KEEPALIVE,
+						1,
 					)
-					if controlErr != nil {
-						return
-					}
+					// Windows上TCP_KEEPCNT和TCP_USER_TIMEOUT可能不可用，跳过
+					return
 				}
+				
+				// Linux/Unix平台：可以直接使用int(fd)
+				// 使用数值常量而不是符号常量
+				const (
+					TCP_KEEPCNT      = 0x06 // Linux的TCP_KEEPCNT值
+					TCP_USER_TIMEOUT = 0x12 // Linux的TCP_USER_TIMEOUT值
+				)
+				
+				// 设置TCP_KEEPCNT
+				controlErr = syscall.SetsockoptInt(
+					int(fd), // Linux可以直接用int(fd)
+					syscall.IPPROTO_TCP,
+					TCP_KEEPCNT,
+					timeout.keepalive_count,
+				)
+				if controlErr != nil {
+					return
+				}
+				
+				// 设置TCP_USER_TIMEOUT
+				controlErr = syscall.SetsockoptInt(
+					int(fd),
+					syscall.IPPROTO_TCP,
+					TCP_USER_TIMEOUT,
+					timeout.tcp_user_timeout,
+				)
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("raw control error: %w", err)
 			}
 			return controlErr
 		},
 	}
 	return dialer
 }
-
 // Open打开一个到数据库的新连接，name为连接串
 // 一般情况下不直接使用该函数，而是通过标准库的database/sql包来使用
 func Open(dsn string) (dc driver.Conn, err error) {
