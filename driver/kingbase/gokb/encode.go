@@ -34,8 +34,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid/oracleOid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid/oracleOid"
 
 	"github.com/golang-sql/civil"
 	"github.com/shopspring/decimal"

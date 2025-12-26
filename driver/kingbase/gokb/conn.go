@@ -37,24 +37,23 @@ import (
 	"path"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 	"unicode"
 	"unsafe"
-	"runtime"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid/mysqlOid"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid/oracleOid"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid/sqlserverOid"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/scram"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/sm3"
+
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid/mysqlOid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid/oracleOid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid/sqlserverOid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/scram"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/sm3"
 
 	"github.com/golang-sql/civil"
 	"github.com/shopspring/decimal"
-	"golang.org/x/sys/unix"
-	"golang.org/x/sys/windows"
 )
 
 // Open打开一个到数据库的新连接，name为连接串
@@ -506,7 +505,7 @@ func CreateDialer(timeout timeoutParams) net.Dialer {
 				if runtime.GOOS == "windows" {
 					// Windows平台：必须使用syscall.Handle类型
 					handle := syscall.Handle(fd)
-					
+
 					// Windows可能不支持这些TCP选项，我们只设置基本的keepalive
 					// 设置SO_KEEPALIVE（Windows支持这个）
 					controlErr = syscall.SetsockoptInt(
@@ -518,14 +517,14 @@ func CreateDialer(timeout timeoutParams) net.Dialer {
 					// Windows上TCP_KEEPCNT和TCP_USER_TIMEOUT可能不可用，跳过
 					return
 				}
-				
+
 				// Linux/Unix平台：可以直接使用int(fd)
 				// 使用数值常量而不是符号常量
 				const (
 					TCP_KEEPCNT      = 0x06 // Linux的TCP_KEEPCNT值
 					TCP_USER_TIMEOUT = 0x12 // Linux的TCP_USER_TIMEOUT值
 				)
-				
+
 				// 设置TCP_KEEPCNT
 				controlErr = syscall.SetsockoptInt(
 					int(fd), // Linux可以直接用int(fd)
@@ -536,7 +535,7 @@ func CreateDialer(timeout timeoutParams) net.Dialer {
 				if controlErr != nil {
 					return
 				}
-				
+
 				// 设置TCP_USER_TIMEOUT
 				controlErr = syscall.SetsockoptInt(
 					int(fd),
@@ -553,6 +552,7 @@ func CreateDialer(timeout timeoutParams) net.Dialer {
 	}
 	return dialer
 }
+
 // Open打开一个到数据库的新连接，name为连接串
 // 一般情况下不直接使用该函数，而是通过标准库的database/sql包来使用
 func Open(dsn string) (dc driver.Conn, err error) {

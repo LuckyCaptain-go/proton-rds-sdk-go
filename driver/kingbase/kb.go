@@ -4,7 +4,7 @@ import (
 	"database/sql/driver"
 
 	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/common"
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb"
 )
 
 func Open(dsn string) (driver.Conn, error) {

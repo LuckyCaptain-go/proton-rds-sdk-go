@@ -3,7 +3,7 @@
 package sqlserverOid
 
 import (
-	"github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb/oid"
+	"github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb/oid"
 )
 
 var SqlserverOid = oid.AllOid{

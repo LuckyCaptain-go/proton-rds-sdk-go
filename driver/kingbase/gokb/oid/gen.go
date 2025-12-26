@@ -32,7 +32,7 @@ import (
 	"os/exec"
 	"strings"
 
-	_ "github.com/AISHU-Technology/proton-rds-sdk-go/driver/kingbase/gokb"
+	_ "github.com/LuckyCaptain-go/proton-rds-sdk-go/driver/kingbase/gokb"
 )
 
 const (
